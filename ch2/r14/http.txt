@@ -1,0 +1,3 @@
+GET /rp/rbbeGBIsgklm8T0zmczkK4JcStA.br.js HTTP/1.1
+Host:cn.bing.com
+If-Modified-Since:Thu, 02 Jul 2020 12:23:02 GMTS
