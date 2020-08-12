@@ -19,19 +19,16 @@ User-Agent:Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, 
 
 '''
 
-# 建立套接字连接
-client_socket = socket(AF_INET, SOCK_STREAM)
-client_socket.connect((args.host, args.port))
+# 创建tcp套接字
+with socket(AF_INET, SOCK_STREAM) as client_socket:
+    # 建立套接字连接
+    client_socket.connect((args.host, args.port))
 
-client_socket.send(header.encode())
+    client_socket.send(header.encode())
 
-# 循环读取套接字缓存，直到超时
-while True:
-    http_message = client_socket.recv(4096).decode()
-
-    if http_message == '':
-        break
-
-    print(http_message, end='')
-
-client_socket.close()
+    # 循环读取套接字缓存，直到服务器关闭连接
+    while True:
+        http_message = client_socket.recv(4096).decode()
+        if http_message == '':
+            break
+        print(http_message, end='')
