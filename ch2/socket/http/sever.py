@@ -1,6 +1,6 @@
-from time import gmtime, strftime, struct_time
 from pathlib import Path
-from socket import socket, AF_INET, SOCK_STREAM
+from socket import AF_INET, SOCK_STREAM, socket
+from time import gmtime, strftime, struct_time
 
 
 def httpDate(time=gmtime()):
