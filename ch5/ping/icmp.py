@@ -2,8 +2,8 @@
 import os
 import select
 import struct
-import time
 from socket import AF_INET, SOCK_RAW, gethostbyname, getprotobyname, socket
+from time import sleep, time
 
 ICMP_ECHO_REQUEST = 8
 
@@ -31,9 +31,9 @@ def checksum(string: bytes):
 def receiveOnePing(mySocket: socket, ID: int, timeout: float, destAddr: tuple):
     timeLeft = timeout
     while True:
-        startedSelect = time.time()
+        startedSelect = time()
         whatReady = select.select([mySocket], [], [], timeLeft)
-        howLongInSelect = time.time() - startedSelect
+        howLongInSelect = time() - startedSelect
         # Timeout
         if whatReady[0] == []:
             return None
@@ -60,7 +60,7 @@ def sendOnePing(mySocket: socket, destAddr: str, ID: int):
     # Make a dummy header with a 0 checksum
     # struct -- Interpret strings as packed binary data
     header = struct.pack("!bbHHh", ICMP_ECHO_REQUEST, 0, myChecksum, ID, 1)
-    data = struct.pack("!d", time.time())
+    data = struct.pack("!d", time())
     # Calculate the checksum on the data and the dummy header.
     myChecksum = checksum(header + data)
     # Get the right checksum, and put in the header
@@ -116,7 +116,7 @@ def ping(host: str, timeout: float = 1):
                 print(
                     f'{result[0]} bytes from {host} ({dest}): icmp_seq={result[1]} ttl={result[2]} time={rtt*1e3:.3f} ms'
                 )
-            time.sleep(1)  # one second
+            sleep(1)  # one second
 
         except KeyboardInterrupt:
             print(f'''
