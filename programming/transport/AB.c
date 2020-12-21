@@ -215,7 +215,7 @@ void B_init() { B_rcvstate = wait_data0; }
 int calc_checksum(struct pkt *packet) {
     int checksum;
 
-    if (packet->seqnum == -1) {
+    if (packet->seqnum == dummy_seq) {
         // 纯ACK包
         checksum = packet->acknum;
     } else {
@@ -372,7 +372,7 @@ float jimsrand() {
 /*****************************************************/
 
 void generate_next_arrival() {
-    double x, log(), ceil();
+    double x;
     struct event *evptr;
 
     if (TRACE > 2)

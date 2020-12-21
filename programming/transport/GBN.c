@@ -85,6 +85,13 @@ int ncorrupt;      /* number corrupted by media*/
 #define BIDIRECTIONAL 0 /* change to 1 if you're doing extra credit */
                         /* and write a routine called B_output */
 
+float timer_increment;
+const int dummy_seq = -1;
+int base, next_seq, window_size, expected_seq;
+int messages_head, messages_length, messages_capacity;
+struct msg *messages_buffer;
+struct pkt *packet_buffer, ack_packet;
+
 /* Here I define some function prototypes to avoid warnings */
 /* in my compiler. Also I declared these functions void and */
 /* changed the implementation to match */
@@ -97,33 +104,149 @@ void starttimer(int, float);
 void tolayer3(int, struct pkt);
 void tolayer5(int, char[]);
 
+int calc_checksum(struct pkt *);
+struct pkt make_packet(int, int, char[]);
+void message_enqueue(struct msg *);
+struct msg *message_dequeue();
+void send_packet();
+
 /* called from layer 5, passed the data to be sent to other side */
-void A_output(struct msg message) {}
+void A_output(struct msg message) {
+    message_enqueue(&message);
+    send_packet();
+}
 
 /* need be completed only for extra credit */
 void B_output(struct msg message) {}
 
 /* called from layer 3, when a packet arrives for layer 4 */
-void A_input(struct pkt packet) {}
+void A_input(struct pkt packet) {
+    if (packet.acknum != calc_checksum(&packet)) {
+        return;
+    }
+
+    base = packet.acknum + 1;
+    stoptimer(A);
+    if (base < next_seq) {
+        starttimer(A, timer_increment);
+    }
+
+    send_packet();
+}
 
 /* called when A's timer goes off */
-void A_timerinterrupt() {}
+void A_timerinterrupt() {
+    starttimer(A, timer_increment);
+    for (int i = base; i < next_seq; i++) {
+        tolayer3(A, packet_buffer[i % window_size]);
+    }
+}
 
 /* the following routine will be called once (only) before any other */
 /* entity A routines are called. You can use it to do any initialization */
-void A_init() {}
+void A_init() {
+    timer_increment = 50;
+
+    messages_head = messages_length = 0;
+    messages_capacity = 50;
+    messages_buffer = calloc(messages_capacity, sizeof(struct msg));
+
+    base = next_seq = 1;
+    window_size = 8;
+    packet_buffer = calloc(window_size, sizeof(struct pkt));
+}
 
 /* Note that with simplex transfer from a-to-B, there is no B_output() */
 
 /* called from layer 3, when a packet arrives for layer 4 at B*/
-void B_input(struct pkt packet) {}
+void B_input(struct pkt packet) {
+    if (packet.checksum == calc_checksum(&packet) &&
+        expected_seq == packet.seqnum) {
+        tolayer5(B, packet.payload);
+        ack_packet = make_packet(dummy_seq, expected_seq, "");
+        expected_seq++;
+    }
+    // printf("收到数据：seq: %d, %s\n", packet.seqnum, packet.payload);
+    tolayer3(B, ack_packet);
+}
 
 /* called when B's timer goes off */
 void B_timerinterrupt() {}
 
 /* the following routine will be called once (only) before any other */
 /* entity B routines are called. You can use it to do any initialization */
-void B_init() {}
+void B_init() {
+    expected_seq = 1;
+    ack_packet = make_packet(dummy_seq, expected_seq - 1, "");
+}
+
+// 简单计算校验和，实际的校验和计算方法不是这个
+int calc_checksum(struct pkt *packet) {
+    int checksum;
+
+    if (packet->seqnum == dummy_seq) {
+        // 纯ACK包
+        checksum = packet->acknum;
+    } else {
+        // 带数据的包
+        checksum = packet->seqnum + packet->acknum;
+        for (int i = 0; i < 20; i++) {
+            checksum += packet->payload[i];
+        }
+    }
+
+    return checksum;
+}
+
+// 制作一个IP数据包
+struct pkt make_packet(int seqnum, int acknum, char payload[]) {
+    struct pkt packet;
+    packet.seqnum = seqnum;
+    packet.acknum = acknum;
+    strcpy(packet.payload, payload);
+    packet.checksum = calc_checksum(&packet);
+    return packet;
+}
+
+void message_enqueue(struct msg *message) {
+    if (messages_length == messages_capacity) {
+        return;
+    }
+
+    messages_buffer[messages_head + messages_length] = *message;
+    messages_length++;
+}
+
+struct msg *message_dequeue() {
+    if (messages_length == 0) {
+        return NULL;
+    }
+
+    struct msg *message = &messages_buffer[messages_head];
+    messages_head++;
+    messages_length--;
+
+    if (messages_head == messages_capacity) {
+        messages_head = 0;
+    }
+
+    return message;
+}
+
+void send_packet() {
+    while (messages_length != 0 && next_seq < base + window_size) {
+        packet_buffer[next_seq % window_size] =
+            make_packet(next_seq, dummy_seq, message_dequeue()->data);
+
+        tolayer3(A, packet_buffer[next_seq % window_size]);
+        // printf("发送数据：%s\n", packet_buffer[next_seq % window_size].payload);
+        if (base == next_seq) {
+            starttimer(A, timer_increment);
+        }
+
+        next_seq++;
+    }
+}
 
 int main() {
     struct event *eventptr;
