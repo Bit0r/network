@@ -7,3 +7,6 @@ struct rtpkt {
                        (must be an immediate neighbor) */
     int mincost[4]; /* min cost to node 0 ... 3 */
 };
+
+void rtinit(int n, int costs[n][n], int s, int adj[][2], int degree);
+void rtupdate(int n, int costs[n][n], int s, struct rtpkt *rcvdpkt);

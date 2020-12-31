@@ -12,10 +12,18 @@ struct distance_table {
 } dt0;
 
 /* students to write the following two routines, and maybe some others */
+void linkhandler0(int linkid, int newcost);
+void printdt0(struct distance_table *dtptr);
 
-void rtinit0() {}
+void rtinit0() {
+    int adj[3][2] = {{1, 1}, {2, 3}, {3, 7}};
+    rtinit(4, dt0.costs, 0, adj, 3);
+}
 
-void rtupdate0(struct rtpkt *rcvdpkt) {}
+void rtupdate0(struct rtpkt *rcvdpkt) {
+    rtupdate(4, dt0.costs, 0, rcvdpkt);
+    printdt0(&dt0);
+}
 
 void printdt0(struct distance_table *dtptr) {
     printf("                via     \n");

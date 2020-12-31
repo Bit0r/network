@@ -14,10 +14,18 @@ struct distance_table {
 } dt1;
 
 /* students to write the following two routines, and maybe some others */
+void linkhandler1(int linkid, int newcost);
+void printdt1(struct distance_table *dtptr);
 
-void rtinit1() {}
+void rtinit1() {
+    int adj[2][2] = {{0, 1}, {2, 1}};
+    rtinit(4, dt1.costs, 1, adj, 2);
+}
 
-void rtupdate1(struct rtpkt *rcvdpkt) {}
+void rtupdate1(struct rtpkt *rcvdpkt) {
+    rtupdate(4, dt1.costs, 1, rcvdpkt);
+    printdt1(&dt1);
+}
 
 void printdt1(struct distance_table *dtptr) {
     printf("             via   \n");

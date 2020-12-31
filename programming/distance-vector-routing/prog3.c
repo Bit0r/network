@@ -53,6 +53,7 @@ float jimsrand();
 void insertevent(struct event *);
 void printevlist();
 void tolayer2(struct rtpkt);
+void creatertpkt(struct rtpkt *, int, int, int[]);
 
 void rtinit0();
 void rtinit1();
@@ -64,6 +65,77 @@ void rtupdate2(struct rtpkt *);
 void rtupdate3(struct rtpkt *);
 void linkhandler0(int, int);
 void linkhandler1(int, int);
+
+void tolayer2(struct rtpkt);
+bool is_adj(int n, int costs[n][n], int s, int v);
+void send_to_adj(int n, int costs[n][n], int s, int mincost[]);
+
+bool is_adj(int n, int costs[][n], int s, int v) {
+    return 0 < costs[v][s] && costs[v][s] < 999;
+}
+
+void send_to_adj(int n, int costs[][n], int s, int mincost[]) {
+    struct rtpkt packet;
+    for (int v = 0; v < 4; v++) {
+        if (is_adj(4, costs, s, v)) {
+            creatertpkt(&packet, s, v, mincost);
+            tolayer2(packet);
+        }
+    }
+}
+
+void rtinit(int n, int costs[][n], int s, int adj[][2], int degree) {
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < n; j++) {
+            costs[i][j] = 999;
+        }
+    }
+
+    costs[s][s] = 0;
+    for (int i = 0; i < degree; i++) {
+        int v = adj[i][0], cost = adj[i][1];
+        costs[v][s] = cost;
+    }
+
+    int mincost[n];
+    for (int t = 0; t < n; t++) {
+        int cost = 999;
+        for (int j = 0; j < n; j++) {
+            if (cost > costs[t][j]) {
+                cost = costs[t][j];
+            }
+        }
+        mincost[t] = cost;
+    }
+
+    send_to_adj(n, costs, s, mincost);
+}
+
+void rtupdate(int n, int costs[][n], int s, struct rtpkt *rcvdpkt) {
+    int u = s;
+
+    int v = rcvdpkt->sourceid, *mincosts_vt = rcvdpkt->mincost,
+        mincosts_ut[4] = {999, 999, 999, 999};
+    bool updated = false;
+
+    for (int t = 0; t < 4; t++) {
+        for (int j = 0; j < 4; j++) {
+            if (mincosts_ut[t] > costs[t][j]) {
+                mincosts_ut[t] = costs[t][j];
+            }
+        }
+
+        costs[t][v] = costs[v][u] + mincosts_vt[t];
+        if (mincosts_ut[t] > costs[t][v]) {
+            mincosts_ut[t] = costs[t][v];
+            updated = true;
+        }
+    }
+
+    if (updated) {
+        send_to_adj(4, costs, u, mincosts_ut);
+    }
+}
 
 void creatertpkt(struct rtpkt *initrtpkt, int srcid, int destid,
                  int mincosts[]) {

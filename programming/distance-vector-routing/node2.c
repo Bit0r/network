@@ -12,10 +12,17 @@ struct distance_table {
 } dt2;
 
 /* students to write the following two routines, and maybe some others */
+void printdt2(struct distance_table *dtptr);
 
-void rtinit2() {}
+void rtinit2() {
+    int adj[3][2] = {{0, 3}, {1, 1}, {3, 2}};
+    rtinit(4, dt2.costs, 2, adj, 3);
+}
 
-void rtupdate2(struct rtpkt *rcvdpkt) {}
+void rtupdate2(struct rtpkt *rcvdpkt) {
+    rtupdate(4, dt2.costs, 2, rcvdpkt);
+    printdt2(&dt2);
+}
 
 void printdt2(struct distance_table *dtptr) {
     printf("                via     \n");
